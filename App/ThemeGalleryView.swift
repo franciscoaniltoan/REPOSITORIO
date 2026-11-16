@@ -11,7 +11,11 @@ struct ThemeGalleryView: View {
                 ScrollView {
                     VStack(alignment:.leading,spacing:14) {
                         appearancePicker
-                        ForEach(AuraCategory.allCases,id:\.self) { category in
+                        ForEach(
+                            ProcessInfo.processInfo.arguments.contains("--aurabr-visual-fruits")
+                                ? [AuraCategory.fruits] : AuraCategory.allCases,
+                            id:\.self
+                        ) { category in
                             VStack(alignment:.leading,spacing:10) {
                                 Text(category.rawValue.uppercased())
                                     .font(.system(size:11,weight:.bold))
