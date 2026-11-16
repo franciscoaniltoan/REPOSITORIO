@@ -4,6 +4,18 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+    inputs:
+      macos_runner:
+        description: "Runner macOS (altere para contornar filas)"
+        type: choice
+        default: macos-15-intel
+        options:
+          - macos-15-intel
+          - macos-15
+          - macos-26
+concurrency:
+  group: aurabr-ios-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
@@ -27,9 +39,12 @@ jobs:
           PY
   simulator-build:
     name: Compilar app + extensão para simulador
-    runs-on: macos-15
+    runs-on: ${{ inputs.macos_runner || 'macos-15-intel' }}
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+      - name: Diagnosticar macOS e Xcode
+        run: xcodebuild -version && uname -m
       - name: Instalar XcodeGen
         run: brew install xcodegen
       - name: Gerar projeto Xcode
@@ -38,10 +53,20 @@ jobs:
         run: |
           set -o pipefail
           xcodebuild -project AuraBRiOS.xcodeproj -scheme AuraBR -configuration Debug \
+            -derivedDataPath "$RUNNER_TEMP/AuraBRDerivedData" \
             -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
             CODE_SIGNING_ALLOWED=NO build | tee xcodebuild.log
       - name: Testar o bundle resultante
         run: |
-          test -d "$HOME/Library/Developer/Xcode/DerivedData" || exit 1
+          APP="$RUNNER_TEMP/AuraBRDerivedData/Build/Products/Debug-iphonesimulator/AuraBR.app"
+          test -d "$APP"
+          test -d "$APP/PlugIns/AuraBRKeyboard.appex"
           grep -q 'BUILD SUCCEEDED' xcodebuild.log
-          echo 'Build de simulador validada. Ainda não é um IPA para distribuição.'
+          ditto -c -k --keepParent "$APP" "$RUNNER_TEMP/AuraBR-iOS-simulator.zip"
+          echo 'App e extensao do simulador validados. Não é IPA para iPhone físico.'
+      - name: Publicar pacote de simulador
+        uses: actions/upload-artifact@v4
+        with:
+          name: AuraBR-iOS-simulator
+          path: ${{ runner.temp }}/AuraBR-iOS-simulator.zip
+          retention-days: 7
