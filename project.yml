@@ -22,6 +22,8 @@ targets:
         GENERATE_INFOPLIST_FILE: NO
         CODE_SIGN_ENTITLEMENTS: App/AuraBR.entitlements
         ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS: NO
+        # App Store icon is not yet approved; avoid Xcode's implicit AppIcon lookup.
+        ASSETCATALOG_COMPILER_APPICON_NAME: ''
         SUPPORTS_MACCATALYST: NO
     dependencies:
       - target: AuraBRKeyboard
