@@ -62,6 +62,7 @@ final class AuraKeyboardViewController: UIInputViewController {
         if previous.0 != lastRenderedTheme || previous.1 != lastRenderedAppearance {
             renderKeyboard()
         } else {
+            refreshShiftAtSentenceStart()
             updateSuggestions()
         }
     }
@@ -69,12 +70,11 @@ final class AuraKeyboardViewController: UIInputViewController {
     private func loadTheme() {
         // Shared configuration is read-only; if iOS denies access in a
         // restricted keyboard sandbox, a safe bundled palette remains usable.
-        let defaults = UserDefaults(suiteName: "group.com.aurabr.ios")
-        let id = defaults?.string(forKey: "aurabr.selectedThemeID") ?? "fruit-morango"
-        let raw = defaults?.string(forKey: "aurabr.appearance") ?? "Claro"
-        palette = AuraCatalog.palette(for: id, appearance: AuraAppearance(rawValue: raw) ?? .light)
-        lastRenderedTheme = id
-        lastRenderedAppearance = raw
+        let selected = AuraSharedThemeSettings.read(
+            shared: UserDefaults(suiteName: AuraSharedThemeSettings.suiteName))
+        palette = AuraCatalog.palette(for: selected.themeID, appearance: selected.appearance)
+        lastRenderedTheme = selected.themeID
+        lastRenderedAppearance = selected.appearance.rawValue
         gradient.colors = [UIColor(rgb: palette.backgroundStart).cgColor,
                            UIColor(rgb: palette.backgroundEnd).cgColor]
     }
@@ -87,17 +87,17 @@ final class AuraKeyboardViewController: UIInputViewController {
             addRow("qwertyuiop".map(String.init))
             addRow("asdfghjkl".map(String.init), inset: 11)
             addRow(["⇧"] + "zxcvbnm".map(String.init) + ["⌫"])
-            addRow(["123", "☺", "globe", "espaço", "↵"], bottom: true)
+            addRow(bottomTokens(["123", "☺", "globe", "espaço", "↵"]), bottom: true)
         case .numbers:
             addRow("1234567890".map(String.init))
             addRow(["@", "#", "$", "%", "&", "-", "+", "(", ")"])
             addRow(["=\\<", "*", "\"", "'", ":", ";", "!", "?", "⌫"])
-            addRow(["ABC", "#+=", "globe", "espaço", "↵"], bottom: true)
+            addRow(bottomTokens(["ABC", "#+=", "globe", "espaço", "↵"]), bottom: true)
         case .symbols:
             addRow(["[", "]", "{", "}", "<", ">", "^", "~", "|"])
             addRow(["\\", "/", "_", "€", "£", "¥", "•", "…"])
             addRow(["123", "§", "±", "÷", "×", "≠", "≈", "⌫"])
-            addRow(["ABC", "123", "globe", "espaço", "↵"], bottom: true)
+            addRow(bottomTokens(["ABC", "123", "globe", "espaço", "↵"]), bottom: true)
         case .emoji:
             let emojis = ["😀","😂","🥰","😍","😊","😭","❤️","🔥",
                           "👍","🙏","🎉","🍓","🍉","🍌","🍃","💚",
@@ -105,8 +105,25 @@ final class AuraKeyboardViewController: UIInputViewController {
             for start in stride(from: 0, to: emojis.count, by: 8) {
                 addRow(Array(emojis[start ..< min(start+8,emojis.count)]))
             }
-            addRow(["ABC", "123", "globe", "espaço", "⌫"], bottom: true)
+            addRow(bottomTokens(["ABC", "123", "globe", "espaço", "⌫"]), bottom: true)
         }
+    }
+
+    /// On Face ID iPhones iOS often draws the system globe below the keyboard.
+    /// Do not duplicate it when the system says it is unnecessary.
+    private func bottomTokens(_ tokens: [String]) -> [String] {
+        needsInputModeSwitchKey ? tokens : tokens.filter { $0 != "globe" }
+    }
+
+    /// Only restore automatic Shift after a sentence boundary. Manual Shift
+    /// remains available to capitalize names mid-sentence.
+    private func refreshShiftAtSentenceStart() {
+        guard page == .letters,
+              let before = textDocumentProxy.documentContextBeforeInput,
+              !shifted,
+              AuraSentenceRules.shouldCapitalize(after: before) else { return }
+        shifted = true
+        renderKeyboard()
     }
 
     private func addSuggestionStrip() {
@@ -121,7 +138,9 @@ final class AuraKeyboardViewController: UIInputViewController {
 
     private func updateSuggestions() {
         let current = textDocumentProxy.documentContextBeforeInput ?? ""
+        let typed = AuraInputContext.currentWord(in: current)
         let completions = AuraInputContext.suggestions(for: current)
+            .map { AuraInputContext.matchCapitalization(of: $0, to: typed) }
         suggestions.arrangedSubviews.forEach { v in suggestions.removeArrangedSubview(v); v.removeFromSuperview() }
         for (index,text) in (0..<3).map({ completions.indices.contains($0) ? completions[$0] : "" }).enumerated() {
             let button = UIButton(type: .system)
@@ -175,20 +194,41 @@ final class AuraKeyboardViewController: UIInputViewController {
         button.layer.shadowOffset = CGSize(width: 0, height: 1)
         button.layer.shadowRadius = 2
         button.layer.shadowOpacity = 0.45
-        button.addTarget(self, action: #selector(pressKey(_:)), for: .touchUpInside)
+        if token == "globe" {
+            // Apple's input-mode picker also handles long-press selection.
+            button.addTarget(self,
+                             action: #selector(handleInputModeList(from:with:)),
+                             for: .allTouchEvents)
+        } else {
+            button.addTarget(self, action: #selector(pressKey(_:)), for: .touchUpInside)
+        }
         return button
     }
 
     @objc private func pressKey(_ sender: UIButton) {
         let token = sender.accessibilityIdentifier ?? ""
         switch token {
-        case "globe": advanceToNextInputMode(); return
+        case "globe": return // Handled by Apple's system input-mode picker.
         case "⇧": shifted.toggle(); renderKeyboard(); return
-        case "⌫": textDocumentProxy.deleteBackward()
-        case "↵": textDocumentProxy.insertText("\n")
-        case "espaço": textDocumentProxy.insertText(" ")
+        case "⌫":
+            textDocumentProxy.deleteBackward()
+            refreshShiftAtSentenceStart()
+        case "↵":
+            textDocumentProxy.insertText("\n")
+            shifted = true
+            if page == .letters { renderKeyboard() }
+        case "espaço":
+            textDocumentProxy.insertText(" ")
+            refreshShiftAtSentenceStart()
         case "123": page = .numbers; renderKeyboard(); return
-        case "ABC": page = .letters; renderKeyboard(); return
+        case "ABC":
+            page = .letters
+            if let text = textDocumentProxy.documentContextBeforeInput,
+               AuraSentenceRules.shouldCapitalize(after: text) {
+                shifted = true
+            }
+            renderKeyboard()
+            return
         case "#+=", "=\\<": page = page == .symbols ? .numbers : .symbols; renderKeyboard(); return
         case "☺": page = .emoji; renderKeyboard(); return
         default:
