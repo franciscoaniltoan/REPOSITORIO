@@ -62,3 +62,13 @@ na galeria de temas e na tela inicial. O teste
 `scripts/validate_fruit_assets.py` confere o hash Git, a dimensão PNG,
 os metadados Xcode e os IDs das frutas. Outros ícones continuam provisórios
 até serem convertidos com fidelidade.
+
+## Usar sem pagar Apple Developer (Personal Team)
+
+A configuração **gratuita** de desenvolvimento está em `project-free.yml`, independente de `project.yml`, sem App Group e sem assinatura de distribuição. É possível compilar e gerar ZIP de **simulador** pelo GitHub Actions (`.github/workflows/ios-free.yml`).
+
+Para instalar em um **iPhone próprio**, é necessário um Mac com Xcode e um Apple ID gratuito configurado como Personal Team. A assinatura de desenvolvimento expira após 7 dias e precisa ser refeita no Xcode. **Não há TestFlight, IPA para terceiros nem App Store** nessa opção.
+
+No teclado gratuito, os botões **🎨** (tema) e **◐** (aparência) permitem experimentar as 23 cores no próprio teclado, sem sincronização com a galeria ou persistência entre reinícios da extensão. Isso mantém o teclado offline e evita permissões indisponíveis na conta gratuita.
+
+**[Passo a passo completo de instalação gratuita](docs/APPLE_ID_GRATUITO.md).**

@@ -1,0 +1,57 @@
+name: AuraBR iOS · modo gratuito Personal Team
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: aurabr-ios-free-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  validate-free:
+    name: Verificar recursos gratuitos e privacidade
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validar configuracao Personal Team sem App Group
+        run: python3 scripts/validate_personal_team.py
+      - name: Testar dicionario, paletas e contexto offline
+        run: swift test --parallel
+  free-simulator:
+    name: Compilar AuraBR + teclado gratuito para simulador
+    runs-on: macos-15-intel
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preparar XcodeGen
+        run: |
+          xcodebuild -version
+          brew install xcodegen
+      - name: Gerar projeto Personal Team separado
+        run: xcodegen generate --spec project-free.yml
+      - name: Compilar ambos os targets sem assinatura de distribuicao
+        run: |
+          set -o pipefail
+          xcodebuild -project AuraBRiOSFree.xcodeproj -scheme AuraBR \
+            -configuration Debug -derivedDataPath "$RUNNER_TEMP/AuraBRFreeDerived" \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO build | tee free-build.log
+          grep -q 'BUILD SUCCEEDED' free-build.log
+      - name: Validar app e extensao no bundle
+        run: |
+          set -euo pipefail
+          APP="$RUNNER_TEMP/AuraBRFreeDerived/Build/Products/Debug-iphonesimulator/AuraBR.app"
+          test -d "$APP"
+          test -d "$APP/PlugIns/AuraBRKeyboard.appex"
+          test -f "$APP/Info.plist"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist" | grep -F 'com.aurabr.ios.free'
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/PlugIns/AuraBRKeyboard.appex/Info.plist" | grep -F 'com.aurabr.ios.free.keyboard'
+          ditto -c -k --keepParent "$APP" "$RUNNER_TEMP/AuraBR-iOS-free-simulator.zip"
+      - name: Anexar simulador gratuito para testes (nao e IPA)
+        uses: actions/upload-artifact@v4
+        with:
+          name: AuraBR-iOS-free-simulator
+          path: ${{ runner.temp }}/AuraBR-iOS-free-simulator.zip
+          retention-days: 7

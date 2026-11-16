@@ -15,7 +15,7 @@ import SwiftUI
     }
 
     init() {
-        let group = UserDefaults(suiteName: Self.suite)
+        let group = Self.sharedDefaults()
         let restored = AuraSharedThemeSettings.read(shared: group, fallback: .standard)
         selectedThemeID = restored.themeID
         appearance = restored.appearance
@@ -29,10 +29,19 @@ import SwiftUI
         AuraCatalog.palette(for: selectedThemeID, appearance: appearance)
     }
 
+    private static func sharedDefaults() -> UserDefaults? {
+        #if AURABR_FREE_PERSONAL
+        // Free development profiles cannot reliably provision an App Group.
+        return nil
+        #else
+        return UserDefaults(suiteName: suite)
+        #endif
+    }
+
     private func persist() {
         AuraSharedThemeSettings.save(
             .init(themeID: selectedThemeID, appearance: appearance),
-            shared: UserDefaults(suiteName: Self.suite),
+            shared: Self.sharedDefaults(),
             fallback: .standard
         )
     }

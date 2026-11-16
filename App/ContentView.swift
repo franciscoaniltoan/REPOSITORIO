@@ -82,6 +82,11 @@ private struct SettingsView: View {
                     Text("O iOS pode mostrar o globo na barra inferior em vez de dentro do teclado.")
                         .font(.footnote)
                         .foregroundStyle(AuraStyle.secondary)
+                    #if AURABR_FREE_PERSONAL
+                    Text("Versão gratuita para desenvolvimento: escolha cores no próprio teclado pelos controles 🎨 (tema) e ◐ (Claro / Glass / Escuro). A galeria deste aplicativo serve como prévia; sem App Group, a seleção não é compartilhada com o teclado e os controles reiniciam quando o iOS recria a extensão.")
+                        .font(.footnote)
+                        .foregroundStyle(AuraStyle.secondary)
+                    #endif
                     Divider()
                     Label("Experimente a digitação", systemImage:"text.cursor")
                         .font(.headline)
@@ -96,7 +101,11 @@ private struct SettingsView: View {
                     Divider()
                     Label("Privacidade desde a primeira versão",systemImage:"lock.shield")
                         .font(.headline)
+                    #if AURABR_FREE_PERSONAL
+                    Text("A extensão funciona offline, sem Acesso Total, rede ou App Group. Os controles de aparência atuam apenas na sessão atual do teclado.")
+                    #else
                     Text("A extensão solicita RequestsOpenAccess = false, não transmite digitação pela internet e usa um pequeno vocabulário local de exemplo. O aplicativo grava as preferências de tema e o teclado as lê do App Group, sem pedir Acesso Total.")
+                    #endif
                     Divider()
                     Text("Compatibilidade inicial: iOS 17 ou superior. O iOS pode substituir teclados de terceiros em campos de senha, alguns campos telefônicos ou aplicativos que os bloqueiam.")
                         .font(.footnote)

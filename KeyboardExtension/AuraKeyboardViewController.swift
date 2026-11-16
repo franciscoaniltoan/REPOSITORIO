@@ -13,6 +13,12 @@ final class AuraKeyboardViewController: UIInputViewController {
     private var palette = AuraCatalog.palette(for: "fruit-morango", appearance: .light)
     private var lastRenderedTheme = ""
     private var lastRenderedAppearance = ""
+    #if AURABR_FREE_PERSONAL
+    // Personal Team cannot depend on a provisioned App Group. The in-keyboard
+    // palette selector works in this keyboard session without any permission.
+    private var freeThemeID = AuraSharedThemeSettings.defaultThemeID
+    private var freeAppearance: AuraAppearance = .light
+    #endif
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -70,8 +76,13 @@ final class AuraKeyboardViewController: UIInputViewController {
     private func loadTheme() {
         // Shared configuration is read-only; if iOS denies access in a
         // restricted keyboard sandbox, a safe bundled palette remains usable.
+        #if AURABR_FREE_PERSONAL
+        let selected = AuraSharedThemeSettings.Selection(
+            themeID: freeThemeID, appearance: freeAppearance)
+        #else
         let selected = AuraSharedThemeSettings.read(
             shared: UserDefaults(suiteName: AuraSharedThemeSettings.suiteName))
+        #endif
         palette = AuraCatalog.palette(for: selected.themeID, appearance: selected.appearance)
         lastRenderedTheme = selected.themeID
         lastRenderedAppearance = selected.appearance.rawValue
@@ -153,7 +164,45 @@ final class AuraKeyboardViewController: UIInputViewController {
             button.addTarget(self, action: #selector(selectSuggestion(_:)), for: .touchUpInside)
             suggestions.addArrangedSubview(button)
         }
+        #if AURABR_FREE_PERSONAL
+        // A free development profile doesn't authorize shared theme settings.
+        // Give the keyboard its own temporary, offline theme controls.
+        let themeButton = UIButton(type: .system)
+        themeButton.setTitle("🎨", for: .normal)
+        themeButton.titleLabel?.font = .systemFont(ofSize: 18)
+        themeButton.accessibilityLabel = "Próximo tema, atual: \(AuraCatalog.theme(freeThemeID).name)"
+        themeButton.addTarget(self, action: #selector(nextFreeTheme(_:)), for: .touchUpInside)
+        suggestions.addArrangedSubview(themeButton)
+
+        let modeButton = UIButton(type: .system)
+        modeButton.setTitle("◐", for: .normal)
+        modeButton.setTitleColor(UIColor(rgb: palette.ink), for: .normal)
+        modeButton.titleLabel?.font = .systemFont(ofSize: 20)
+        modeButton.accessibilityLabel = "Mudar aparência, atual: \(freeAppearance.rawValue)"
+        modeButton.addTarget(self, action: #selector(nextFreeAppearance(_:)), for: .touchUpInside)
+        suggestions.addArrangedSubview(modeButton)
+        #endif
     }
+
+    #if AURABR_FREE_PERSONAL
+    @objc private func nextFreeTheme(_ sender: UIButton) {
+        let themes = AuraCatalog.themes
+        guard !themes.isEmpty else { return }
+        let currentIndex = themes.firstIndex { $0.id == freeThemeID } ?? 0
+        freeThemeID = themes[(currentIndex + 1) % themes.count].id
+        loadTheme()
+        renderKeyboard()
+    }
+
+    @objc private func nextFreeAppearance(_ sender: UIButton) {
+        let modes = AuraAppearance.allCases
+        guard !modes.isEmpty else { return }
+        let currentIndex = modes.firstIndex(of: freeAppearance) ?? 0
+        freeAppearance = modes[(currentIndex + 1) % modes.count]
+        loadTheme()
+        renderKeyboard()
+    }
+    #endif
 
     private func addRow(_ tokens: [String], inset: CGFloat = 0, bottom: Bool = false) {
         let row = UIStackView()
