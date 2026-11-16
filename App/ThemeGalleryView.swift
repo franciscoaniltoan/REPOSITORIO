@@ -90,8 +90,7 @@ struct ThemeCardView: View {
                     .background(Color(rgb:palette.background),in:RoundedRectangle(cornerRadius:11))
 
                     HStack(spacing:6) {
-                        Text(theme.emoji)
-                            .font(.system(size: min(31, max(20, detailsWidth * 0.21))))
+                        ThemeIdentityArt(theme: theme)
                             .frame(width: min(40,detailsWidth * 0.27),height:54)
                             .background(Color(rgb:palette.background).opacity(0.38),in:RoundedRectangle(cornerRadius:9))
                         Rectangle()

@@ -36,7 +36,7 @@ private struct HomeView: View {
                         .foregroundStyle(AuraStyle.secondary)
                     VStack(alignment:.leading,spacing:12) {
                         HStack {
-                            Text(store.selectedTheme.emoji).font(.title2)
+                            ThemeIdentityArt(theme: store.selectedTheme).frame(width:30,height:30)
                             Text(store.selectedTheme.name).font(.headline)
                             Spacer()
                             Text(store.appearance.rawValue).font(.caption).foregroundStyle(AuraStyle.secondary)
