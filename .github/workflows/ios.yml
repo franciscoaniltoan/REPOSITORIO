@@ -8,7 +8,7 @@ on:
       macos_runner:
         description: "Runner macOS (altere para contornar filas)"
         type: choice
-        default: macos-26
+        default: macos-15-intel
         options:
           - macos-15-intel
           - macos-15
@@ -41,7 +41,7 @@ jobs:
         run: python3 scripts/validate_fruit_assets.py
   simulator-build:
     name: Compilar app + extensão para simulador
-    runs-on: ${{ inputs.macos_runner || 'macos-26' }}
+    runs-on: ${{ inputs.macos_runner || 'macos-15-intel' }}
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
