@@ -15,7 +15,12 @@ import SwiftUI
     }
 
     init() {
+        #if AURABR_FREE_PERSONAL
+        // Personal Team: no App Group entitlement; keep theme previews locally.
+        let group: UserDefaults? = nil
+        #else
         let group = UserDefaults(suiteName: Self.suite)
+        #endif
         let restored = AuraSharedThemeSettings.read(shared: group, fallback: .standard)
         selectedThemeID = restored.themeID
         appearance = restored.appearance
@@ -32,7 +37,13 @@ import SwiftUI
     private func persist() {
         AuraSharedThemeSettings.save(
             .init(themeID: selectedThemeID, appearance: appearance),
-            shared: UserDefaults(suiteName: Self.suite),
+            shared: {
+                #if AURABR_FREE_PERSONAL
+                return nil
+                #else
+                return UserDefaults(suiteName: Self.suite)
+                #endif
+            }(),
             fallback: .standard
         )
     }
