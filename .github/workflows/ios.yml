@@ -9,7 +9,7 @@ permissions:
 jobs:
   swift-core:
     name: Testes de temas e sugestões offline
-    runs-on: macos-15
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Swift Package tests
