@@ -61,6 +61,8 @@ private struct HomeView: View {
 }
 
 private struct SettingsView: View {
+    @State private var sampleText = ""
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -70,11 +72,25 @@ private struct SettingsView: View {
                     Text("1. Abra Ajustes do iPhone.")
                     Text("2. Vá até Geral → Teclado → Teclados.")
                     Text("3. Escolha Adicionar Novo Teclado → AuraBR.")
-                    Text("4. Use o botão de globo para alternar para AuraBR ao digitar.")
+                    Text("4. Use o controle de troca de teclado do iOS para ativar o AuraBR ao digitar.")
+                    Text("O iOS pode mostrar o globo na barra inferior em vez de dentro do teclado.")
+                        .font(.footnote)
+                        .foregroundStyle(AuraStyle.secondary)
+                    Divider()
+                    Label("Experimente a digitação", systemImage:"text.cursor")
+                        .font(.headline)
+                    Text("Depois de ativar o AuraBR em Ajustes, toque no campo abaixo e selecione-o no controle de teclado do iOS.")
+                        .font(.subheadline)
+                        .foregroundStyle(AuraStyle.secondary)
+                    TextField("Digite uma mensagem em português...", text:$sampleText,axis:.vertical)
+                        .lineLimit(2...4)
+                        .padding(12)
+                        .background(AuraStyle.background,in:RoundedRectangle(cornerRadius:12))
+                        .accessibilityIdentifier("aurabr.testInput")
                     Divider()
                     Label("Privacidade desde a primeira versão",systemImage:"lock.shield")
                         .font(.headline)
-                    Text("A extensão solicita RequestsOpenAccess = false, não transmite digitação pela internet e usa um pequeno vocabulário local de exemplo. Configurações de tema são lidas do App Group.")
+                    Text("A extensão solicita RequestsOpenAccess = false, não transmite digitação pela internet e usa um pequeno vocabulário local de exemplo. O aplicativo grava as preferências de tema e o teclado as lê do App Group, sem pedir Acesso Total.")
                     Divider()
                     Text("Compatibilidade inicial: iOS 17 ou superior. O iOS pode substituir teclados de terceiros em campos de senha, alguns campos telefônicos ou aplicativos que os bloqueiam.")
                         .font(.footnote)
