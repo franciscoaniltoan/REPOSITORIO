@@ -1,0 +1,47 @@
+name: AuraBR iOS · build e testes
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  swift-core:
+    name: Testes de temas e sugestões offline
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Swift Package tests
+        run: swift test --parallel
+      - name: Conferir configuração do teclado e privacidade
+        run: |
+          python3 - <<'PY'
+          import plistlib
+          p = plistlib.load(open('KeyboardExtension/Info.plist', 'rb'))
+          ext = p['NSExtension']
+          assert ext['NSExtensionPointIdentifier'] == 'com.apple.keyboard-service'
+          assert ext['NSExtensionAttributes']['RequestsOpenAccess'] is False
+          assert ext['NSExtensionAttributes']['PrimaryLanguage'] == 'pt-BR'
+          print('Teclado iOS offline e sem Full Access: configuração válida')
+          PY
+  simulator-build:
+    name: Compilar app + extensão para simulador
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Instalar XcodeGen
+        run: brew install xcodegen
+      - name: Gerar projeto Xcode
+        run: xcodegen generate
+      - name: Compilar todos os targets sem assinatura
+        run: |
+          set -o pipefail
+          xcodebuild -project AuraBRiOS.xcodeproj -scheme AuraBR -configuration Debug \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO build | tee xcodebuild.log
+      - name: Testar o bundle resultante
+        run: |
+          test -d "$HOME/Library/Developer/Xcode/DerivedData" || exit 1
+          grep -q 'BUILD SUCCEEDED' xcodebuild.log
+          echo 'Build de simulador validada. Ainda não é um IPA para distribuição.'

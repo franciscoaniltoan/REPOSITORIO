@@ -1,7 +1,45 @@
 # AuraBR iOS
 
-Aplicativo e extensão de teclado para iOS, com identidade visual baseada no AuraBR Android v0.5.50.
+Versão inicial **nativa de iOS** da identidade visual aprovada do AuraBR Android **v0.5.50**, desenvolvida independentemente do repositório Android.
 
-> Em desenvolvimento: primeiras compilações voltadas ao simulador iOS e aos testes. Nenhum IPA assinado ou publicação na App Store foi realizada.
+## Estado
 
-O código é independente do repositório Android e não requer acesso completo do teclado à rede.
+- Galeria de **23 temas**: Clássicos/Pastéis, Pedras preciosas e Frutas, com modo Claro, Glass e Escuro.
+- Melancia rosa/verde e Morango rosa/cacau com paletas separadas; cards compactos **48%/52%** e miniatura/cápsula alinhados no topo.
+- Teclado iOS nativo inicial (`UIInputViewController`) com letras, Shift, Backspace, Enter, símbolos, emoji, tecla de troca de teclado e pequenas sugestões **offline** em PT-BR.
+- App iOS em SwiftUI; extensão em UIKit; núcleo em Swift puro testável no Linux/macOS.
+- **Protótipo**, não equivalência funcional ao corretor contextual do Android. Digitação e apresentação precisam de testes em simulador e iPhone.
+
+## Compilar sem Mac local
+
+O GitHub Actions usa macOS e Xcode para testes e uma build para **simulador**. Não é um IPA assinado nem distribuição via TestFlight. O projeto Xcode é gerado pelo `XcodeGen` a partir de `project.yml`:
+
+```bash
+brew install xcodegen
+xcodegen generate
+swift test
+xcodebuild -project AuraBRiOS.xcodeproj -scheme AuraBR -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
+```
+
+A publicação no iPhone exigirá Apple Developer e assinaturas/capacidades App Group configuradas na conta Apple, além da configuração do TestFlight.
+
+## Privacidade e limitações
+
+`RequestsOpenAccess=false`: a extensão **não solicita Full Access** e não possui código de rede. A seleção de temas é salva no App Group pela aplicação; se o sistema negar leitura compartilhada ao teclado, ele permanece funcional no tema padrão Morango. A integração universal dos temas será validada em iPhone e poderá depender de uma opção de sincronização sujeita à permissão do usuário. **Não ativar Full Access silenciosamente**.
+
+O iOS pode trocar para seu teclado padrão em senhas e outros campos protegidos. O teclado deve sempre disponibilizar a troca de método de entrada.
+
+## Referência do Android
+
+Somente a aparência e os valores de temas foram replicados. O pacote Android `com.aurakeyboard.br`, o motor Java/C++, os dicionários e o APK **não são utilizados no iOS**. IDs estáveis das 23 cores foram transportados para `Sources/AuraBRCore/Theme.swift`.
+
+## Organização
+
+- `App/`: tela inicial, galeria de temas, miniatura e controles de aparência.
+- `KeyboardExtension/`: teclado nativo (extensão iOS) e `Info.plist`.
+- `Sources/AuraBRCore/`: modelos e paletas portáteis, sugestões offline básicas.
+- `Tests/`: regressões das cores, IDs e sugestões.
+- `project.yml`: definição reproduzível do projeto Xcode.
+- `.github/workflows/ios.yml`: testes e build de simulador em macOS.
+
+Código inicial livre de chaves, certificados e dados de digitação. Ainda é necessário revisar propriedades e comportamentos no Xcode antes de enviar à App Store.
