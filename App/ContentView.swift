@@ -2,14 +2,20 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject private var store: AuraThemeStore
+    // Only for automated simulator screenshots; normal launches open Início.
+    @State private var selectedTab = ProcessInfo.processInfo.arguments.contains("--aurabr-visual-fruits") ? 1 : 0
+
     var body: some View {
-        TabView {
+        TabView(selection: $selectedTab) {
             HomeView()
                 .tabItem { Label("Início", systemImage:"house") }
+                .tag(0)
             ThemeGalleryView()
                 .tabItem { Label("Temas", systemImage:"paintpalette") }
+                .tag(1)
             SettingsView()
                 .tabItem { Label("Ajustes", systemImage:"gearshape") }
+                .tag(2)
         }
         .tint(AuraStyle.accent)
     }
