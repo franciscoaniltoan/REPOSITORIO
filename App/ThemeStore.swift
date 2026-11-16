@@ -15,12 +15,7 @@ import SwiftUI
     }
 
     init() {
-        #if AURABR_FREE_PERSONAL
-        // Personal Team: no App Group entitlement; keep theme previews locally.
-        let group: UserDefaults? = nil
-        #else
-        let group = UserDefaults(suiteName: Self.suite)
-        #endif
+        let group = Self.sharedDefaults()
         let restored = AuraSharedThemeSettings.read(shared: group, fallback: .standard)
         selectedThemeID = restored.themeID
         appearance = restored.appearance
@@ -34,16 +29,19 @@ import SwiftUI
         AuraCatalog.palette(for: selectedThemeID, appearance: appearance)
     }
 
+    private static func sharedDefaults() -> UserDefaults? {
+        #if AURABR_FREE_PERSONAL
+        // Free development profiles cannot reliably provision an App Group.
+        return nil
+        #else
+        return UserDefaults(suiteName: suite)
+        #endif
+    }
+
     private func persist() {
         AuraSharedThemeSettings.save(
             .init(themeID: selectedThemeID, appearance: appearance),
-            shared: {
-                #if AURABR_FREE_PERSONAL
-                return nil
-                #else
-                return UserDefaults(suiteName: Self.suite)
-                #endif
-            }(),
+            shared: Self.sharedDefaults(),
             fallback: .standard
         )
     }
