@@ -52,3 +52,13 @@ Código inicial livre de chaves, certificados e dados de digitação. Ainda é n
 - O workflow permite alternar runners `macos-15-intel`, `macos-15` e `macos-26`, cancela jobs antigos do mesmo branch e publica ZIP do app de simulador **apenas se o Xcode compilar**.
 - Limitação: a seleção de temas no teclado deve ser comprovada em iPhone; a extensão só possui acesso de leitura ao App Group em modo restrito. `RequestsOpenAccess` permanece `false`, sem conexão de rede.
 - Enquanto o job macOS não for executado e aprovado, o projeto é um protótipo de código e **não** um IPA para instalação física.
+
+## Fidelidade visual — ícones de frutas do Android v0.5.50
+
+O iOS usa os **cinco PNGs aprovados** de Banana, Melancia, Morango, Kiwi e Uva,
+reutilizados sem modificação do AuraBR Android. As imagens estão em
+`App/Assets.xcassets` (128×128, transparência original) e são utilizadas
+na galeria de temas e na tela inicial. O teste
+`scripts/validate_fruit_assets.py` confere o hash Git, a dimensão PNG,
+os metadados Xcode e os IDs das frutas. Outros ícones continuam provisórios
+até serem convertidos com fidelidade.

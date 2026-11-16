@@ -37,6 +37,8 @@ jobs:
           assert ext['NSExtensionAttributes']['PrimaryLanguage'] == 'pt-BR'
           print('Teclado iOS offline e sem Full Access: configuração válida')
           PY
+      - name: Verificar artes de frutas aprovadas no Android
+        run: python3 scripts/validate_fruit_assets.py
   simulator-build:
     name: Compilar app + extensão para simulador
     runs-on: ${{ inputs.macos_runner || 'macos-15-intel' }}
