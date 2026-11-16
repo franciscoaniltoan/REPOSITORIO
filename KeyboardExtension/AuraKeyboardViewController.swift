@@ -121,8 +121,7 @@ final class AuraKeyboardViewController: UIInputViewController {
 
     private func updateSuggestions() {
         let current = textDocumentProxy.documentContextBeforeInput ?? ""
-        let prefix = String(current.split(whereSeparator: { $0.isWhitespace || $0.isNewline }).last ?? "")
-        let completions = AuraOfflineSuggestions.suggest(prefix: prefix)
+        let completions = AuraInputContext.suggestions(for: current)
         suggestions.arrangedSubviews.forEach { v in suggestions.removeArrangedSubview(v); v.removeFromSuperview() }
         for (index,text) in (0..<3).map({ completions.indices.contains($0) ? completions[$0] : "" }).enumerated() {
             let button = UIButton(type: .system)
@@ -202,9 +201,11 @@ final class AuraKeyboardViewController: UIInputViewController {
     @objc private func selectSuggestion(_ sender: UIButton) {
         guard let choice = sender.title(for: .normal), !choice.isEmpty else { return }
         let current = textDocumentProxy.documentContextBeforeInput ?? ""
-        let last = String(current.split(whereSeparator: { $0.isWhitespace || $0.isNewline }).last ?? "")
+        let last = AuraInputContext.currentWord(in: current)
+        guard !last.isEmpty else { return }
+        // Erase only this Unicode word, not punctuation or prior text.
         for _ in last { textDocumentProxy.deleteBackward() }
-        textDocumentProxy.insertText(choice + " ")
+        textDocumentProxy.insertText(AuraInputContext.matchCapitalization(of: choice, to: last) + " ")
         updateSuggestions()
     }
 }

@@ -43,3 +43,12 @@ Somente a aparência e os valores de temas foram replicados. O pacote Android `c
 - `.github/workflows/ios.yml`: testes e build de simulador em macOS.
 
 Código inicial livre de chaves, certificados e dados de digitação. Ainda é necessário revisar propriedades e comportamentos no Xcode antes de enviar à App Store.
+
+## Próxima evolução: digitação PT-BR e compilação do simulador
+
+- Contexto Unicode limitado à palavra atual, sem capturar ou persistir frases.
+- Sugestões offline mantêm acentos e capitalização (Na → Não; NA → NÃO).
+- Testes Swift adicionais em `TextContextTests.swift`.
+- O workflow permite alternar runners `macos-15-intel`, `macos-15` e `macos-26`, cancela jobs antigos do mesmo branch e publica ZIP do app de simulador **apenas se o Xcode compilar**.
+- Limitação: a seleção de temas no teclado deve ser comprovada em iPhone; a extensão só possui acesso de leitura ao App Group em modo restrito. `RequestsOpenAccess` permanece `false`, sem conexão de rede.
+- Enquanto o job macOS não for executado e aprovado, o projeto é um protótipo de código e **não** um IPA para instalação física.
