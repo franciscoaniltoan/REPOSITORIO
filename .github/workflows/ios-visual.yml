@@ -1,0 +1,65 @@
+name: AuraBR iOS · capturas reais no simulador
+
+on:
+  pull_request:
+    paths:
+      - "App/**"
+      - "Sources/**"
+      - "KeyboardExtension/**"
+      - ".github/workflows/ios-visual.yml"
+      - "scripts/select_iphone_simulator.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  visual:
+    name: Capturar Inicio e Frutas no simulador
+    runs-on: macos-15-intel
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preparar Xcode e XcodeGen
+        run: |
+          xcodebuild -version
+          brew install xcodegen
+          xcodegen generate
+      - name: Compilar o aplicativo e a extensao para simulador
+        run: |
+          set -o pipefail
+          xcodebuild -project AuraBRiOS.xcodeproj -scheme AuraBR -configuration Debug \
+            -derivedDataPath "$RUNNER_TEMP/AuraBRDerivedData" \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO build | tee xcodebuild-visual.log
+          grep -q 'BUILD SUCCEEDED' xcodebuild-visual.log
+      - name: Iniciar iPhone e registrar tela inicial + galeria Frutas
+        timeout-minutes: 20
+        run: |
+          set -euo pipefail
+          xcrun simctl list devices --json > "$RUNNER_TEMP/devices.json"
+          UDID="$(python3 scripts/select_iphone_simulator.py "$RUNNER_TEMP/devices.json")"
+          echo "SIM_UDID=$UDID" >> "$GITHUB_ENV"
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b
+          APP="$RUNNER_TEMP/AuraBRDerivedData/Build/Products/Debug-iphonesimulator/AuraBR.app"
+          test -d "$APP/PlugIns/AuraBRKeyboard.appex"
+          xcrun simctl install "$UDID" "$APP"
+          mkdir -p "$RUNNER_TEMP/visual"
+          xcrun simctl launch "$UDID" com.aurabr.ios
+          sleep 5
+          xcrun simctl io "$UDID" screenshot "$RUNNER_TEMP/visual/AuraBR-iOS-Inicio.png"
+          xcrun simctl terminate "$UDID" com.aurabr.ios
+          xcrun simctl launch "$UDID" com.aurabr.ios --aurabr-visual-fruits
+          sleep 5
+          xcrun simctl io "$UDID" screenshot "$RUNNER_TEMP/visual/AuraBR-iOS-Frutas.png"
+          test -s "$RUNNER_TEMP/visual/AuraBR-iOS-Inicio.png"
+          test -s "$RUNNER_TEMP/visual/AuraBR-iOS-Frutas.png"
+      - name: Publicar evidencias visuais de simulador
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: AuraBR-iOS-capturas-simulador
+          path: ${{ runner.temp }}/visual/*.png
+          if-no-files-found: warn
+          retention-days: 7
