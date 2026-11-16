@@ -3,7 +3,7 @@ import XCTest
 
 final class SentenceRulesTests: XCTestCase {
     func testStartAndAfterPunctuation() {
-        for text in ["", " ", "\n", "Olá. ", "Tudo bem? ", "Bom!", "Uau…", "Olá!\\\" "] {
+        for text in ["", " ", "\n", "Olá. ", "Tudo bem? ", "Bom!", "Uau…", "Olá!\" "] {
             XCTAssertTrue(AuraSentenceRules.shouldCapitalize(after: text), text)
         }
     }
